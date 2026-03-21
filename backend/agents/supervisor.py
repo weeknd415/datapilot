@@ -14,9 +14,9 @@ import logging
 import time
 from typing import Annotated, Any, TypedDict
 
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from backend.agents.analytics_agent import AnalyticsAgent
 from backend.agents.document_agent import DocumentAgent
@@ -32,7 +32,8 @@ from backend.core.models import (
 
 logger = logging.getLogger(__name__)
 
-ROUTING_PROMPT = """You are the DataPilot supervisor. Route the user's question to the right specialist agent(s).
+ROUTING_PROMPT = """\
+You are the DataPilot supervisor. Route the user's question to the right specialist agent(s).
 
 AVAILABLE AGENTS:
 1. sql_agent - Queries the business database (customers, orders, products, revenue, invoices)
@@ -156,7 +157,11 @@ class SupervisorAgent:
                 content = content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
             routing = json.loads(content)
         except (json.JSONDecodeError, IndexError):
-            routing = {"agents": ["sql_agent"], "reasoning": "Default routing to SQL", "needs_analytics": False}
+            routing = {
+                "agents": ["sql_agent"],
+                "reasoning": "Default routing to SQL",
+                "needs_analytics": False,
+            }
 
         step = AgentStep(
             agent=AgentType.SUPERVISOR,

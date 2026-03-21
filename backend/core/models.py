@@ -3,20 +3,20 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class AgentType(str, Enum):
+class AgentType(StrEnum):
     SQL = "sql_agent"
     DOCUMENT = "document_agent"
     ANALYTICS = "analytics_agent"
     SUPERVISOR = "supervisor"
 
 
-class QueryStatus(str, Enum):
+class QueryStatus(StrEnum):
     PENDING = "pending"
     ROUTING = "routing"
     PROCESSING = "processing"

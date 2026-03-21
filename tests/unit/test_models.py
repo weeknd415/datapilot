@@ -6,8 +6,8 @@ from backend.core.models import (
     QueryRequest,
     QueryResponse,
     QueryStatus,
-    SQLQueryResult,
     SourceReference,
+    SQLQueryResult,
 )
 
 

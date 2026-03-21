@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.db.database import execute_sql, get_engine, get_schema_info, get_sample_data
+from backend.db.database import execute_sql, get_sample_data, get_schema_info
 
 
 def test_get_schema_info():
@@ -63,7 +63,9 @@ def test_reject_dangerous_queries():
         execute_sql("DROP TABLE customers")
 
     with pytest.raises(ValueError, match="Only SELECT"):
-        execute_sql("INSERT INTO customers VALUES (99, 'Evil Corp', 'Hacker', '', '', '', '', '', '')")
+        execute_sql(
+            "INSERT INTO customers VALUES (99, 'Evil', 'H', '', '', '', '', '', '')"
+        )
 
     # Keyword check catches dangerous keywords inside SELECT
     with pytest.raises(ValueError, match="forbidden keyword"):

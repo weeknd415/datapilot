@@ -5,7 +5,6 @@ Exposes data analysis and visualization capabilities as an MCP server.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import sys
 from pathlib import Path

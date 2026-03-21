@@ -11,17 +11,18 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from backend.core.llm import get_llm, invoke_llm_with_retry
-from backend.core.models import AgentStep, AgentType, SQLQueryResult, SourceReference
+from backend.core.models import AgentStep, AgentType, SourceReference, SQLQueryResult
 from backend.db.database import execute_sql, get_sample_data, get_schema_info
 
 logger = logging.getLogger(__name__)
 
-SQL_SYSTEM_PROMPT = """You are an expert SQL analyst. Your job is to convert natural language questions into accurate SQL queries.
+SQL_SYSTEM_PROMPT = """\
+You are an expert SQL analyst. Your job is to convert natural language questions \
+into accurate SQL queries.
 
 DATABASE SCHEMA:
 {schema}
@@ -54,7 +55,8 @@ If the question cannot be answered with the available schema, return:
     "tables_used": []
 }}"""
 
-EXPLAIN_SYSTEM_PROMPT = """You are a business analyst. Given a SQL query, its results, and the original question,
+EXPLAIN_SYSTEM_PROMPT = """\
+You are a business analyst. Given a SQL query, its results, and the original question,
 provide a clear natural language answer. Be concise and highlight key numbers.
 If the results are empty, explain what that means in business context.
 Format numbers with commas and currency symbols where appropriate."""
@@ -95,8 +97,6 @@ class SQLAgent:
     async def process(self, question: str) -> tuple[SQLQueryResult, list[AgentStep]]:
         """Process a natural language question and return SQL results."""
         steps: list[AgentStep] = []
-        start_time = time.time()
-
         # Step 1: Generate SQL
         schema = self._get_schema()
         sample_data = self._get_sample_data_str()
@@ -130,7 +130,6 @@ class SQLAgent:
         sql_query = parsed.get("sql", "")
         confidence = float(parsed.get("confidence", 0.0))
         explanation = parsed.get("explanation", "")
-        tables_used = parsed.get("tables_used", [])
 
         steps.append(AgentStep(
             agent=AgentType.SQL,

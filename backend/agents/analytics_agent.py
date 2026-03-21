@@ -28,7 +28,8 @@ matplotlib.use("Agg")  # Non-interactive backend
 
 logger = logging.getLogger(__name__)
 
-ANALYTICS_PROMPT = """You are a business analytics expert. Analyze the provided data and answer the question.
+ANALYTICS_PROMPT = """\
+You are a business analytics expert. Analyze the provided data and answer the question.
 
 DATA:
 {data}

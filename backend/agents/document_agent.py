@@ -31,7 +31,9 @@ from backend.core.models import (
 
 logger = logging.getLogger(__name__)
 
-EXTRACTION_PROMPT = """You are a document analysis expert. Analyze the following document content and answer the user's question.
+EXTRACTION_PROMPT = """\
+You are a document analysis expert. Analyze the following document content \
+and answer the user's question.
 
 DOCUMENT CONTENT:
 {content}
@@ -127,7 +129,7 @@ class DocumentAgent:
         file_name = Path(file_path).name
         chunks: list[DocumentChunk] = []
 
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        with open(file_path, encoding="utf-8", errors="ignore") as f:
             text = f.read()
 
         words = text.split()

@@ -6,7 +6,6 @@ by Claude Desktop, Cursor, or any MCP-compatible client.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import sys
 from pathlib import Path
@@ -17,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from fastmcp import FastMCP
 
 from backend.agents.sql_agent import SQLAgent
-from backend.db.database import get_schema_info, execute_sql
+from backend.db.database import execute_sql, get_schema_info
 
 mcp = FastMCP(
     "DataPilot SQL Agent",
