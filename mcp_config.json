@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "datapilot-sql": {
+      "command": "python",
+      "args": ["-m", "backend.mcp_servers.sql_mcp"],
+      "cwd": ".",
+      "env": {
+        "GROQ_API_KEY": "your-groq-api-key"
+      }
+    },
+    "datapilot-documents": {
+      "command": "python",
+      "args": ["-m", "backend.mcp_servers.document_mcp"],
+      "cwd": ".",
+      "env": {
+        "GROQ_API_KEY": "your-groq-api-key"
+      }
+    },
+    "datapilot-analytics": {
+      "command": "python",
+      "args": ["-m", "backend.mcp_servers.analytics_mcp"],
+      "cwd": ".",
+      "env": {
+        "GROQ_API_KEY": "your-groq-api-key"
+      }
+    }
+  }
+}

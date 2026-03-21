@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  datapilot-api:
+    build: .
+    container_name: datapilot-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  datapilot-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: datapilot-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://datapilot-api:8000
+    depends_on:
+      datapilot-api:
+        condition: service_healthy
+    restart: unless-stopped

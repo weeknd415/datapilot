@@ -1,0 +1,38 @@
+name: DataPilot CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Lint with ruff
+        run: ruff check backend/ tests/
+
+      - name: Type check with mypy
+        run: mypy backend/ --ignore-missing-imports
+        continue-on-error: true
+
+      - name: Seed test database
+        run: python scripts/seed_database.py
+
+      - name: Run tests
+        run: pytest tests/ -v --cov=backend --cov-report=term-missing
+        env:
+          DATAPILOT_ENV: test
+          DATAPILOT_DATABASE_URL: "sqlite:///./data/sample_db/business.db"

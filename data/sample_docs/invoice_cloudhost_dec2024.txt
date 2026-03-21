@@ -1,0 +1,43 @@
+INVOICE
+=======
+
+Invoice Number: CH-INV-2024-1247
+Date: December 1, 2024
+Due Date: December 31, 2024
+Status: OVERDUE
+
+FROM:
+CloudHost Infrastructure Services LLC
+1200 Technology Boulevard, Suite 400
+San Jose, CA 95134
+Tax ID: 82-4937261
+
+TO:
+DataPilot Inc.
+500 Innovation Drive
+Austin, TX 78701
+
+DESCRIPTION OF SERVICES - December 2024
+-----------------------------------------
+
+| Item                              | Quantity | Unit Price | Amount     |
+|-----------------------------------|----------|------------|------------|
+| Monthly Base Infrastructure Fee   | 1        | $18,500.00 | $18,500.00 |
+| Additional Compute (vCPU-hours)   | 2,340    | $0.12      | $280.80    |
+| Additional Storage (GB-month)     | 8,200    | $0.023     | $188.60    |
+| Additional Bandwidth (GB)         | 12,500   | $0.08      | $1,000.00  |
+| Premium Support Add-on            | 1        | $2,500.00  | $2,500.00  |
+
+SUBTOTAL:     $22,469.40
+TAX (8.25%):  $1,853.73
+TOTAL DUE:    $24,323.13
+
+PAYMENT INSTRUCTIONS:
+- Wire Transfer: Bank of America, Acct: 4829-1847-2938, Routing: 026009593
+- ACH: Same account details
+- Check: Payable to "CloudHost Infrastructure Services LLC"
+
+NOTES:
+- This invoice is 15 days overdue as of January 15, 2025
+- A late fee of $364.85 will be applied if not paid within 5 business days
+- Please reference invoice number CH-INV-2024-1247 with your payment
