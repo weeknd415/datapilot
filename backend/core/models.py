@@ -66,6 +66,8 @@ class QueryResponse(BaseModel):
     cost_usd: float = 0.0
     total_tokens: int = 0
     duration_ms: int = 0
+    chart_base64: str | None = None
+    chart_type: str | None = None
     error: str | None = None
 
 

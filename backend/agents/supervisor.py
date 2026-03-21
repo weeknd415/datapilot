@@ -350,6 +350,14 @@ class SupervisorAgent:
             sources = [SourceReference(**s) for s in final_state.get("sources", [])]
             total_tokens = sum(s.token_count for s in steps)
 
+            # Extract chart from analytics result if present
+            chart_base64 = None
+            chart_type = None
+            analytics_r = final_state.get("analytics_result")
+            if analytics_r:
+                chart_base64 = analytics_r.get("chart_base64")
+                chart_type = analytics_r.get("chart_type")
+
             return QueryResponse(
                 query=query,
                 answer=final_state.get("final_answer", "I could not generate an answer."),
@@ -359,6 +367,8 @@ class SupervisorAgent:
                 status=QueryStatus.COMPLETED,
                 total_tokens=total_tokens,
                 duration_ms=duration,
+                chart_base64=chart_base64,
+                chart_type=chart_type,
             )
         except Exception as e:
             logger.error("Supervisor pipeline failed: %s", e, exc_info=True)

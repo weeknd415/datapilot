@@ -77,6 +77,28 @@ async def upload_document(file: UploadFile = File(...)) -> dict:
     }
 
 
+@router.get("/documents")
+async def list_documents() -> dict:
+    """List all documents in the sample docs directory."""
+    docs_dir = settings.sample_docs_dir
+    if not os.path.exists(docs_dir):
+        return {"documents": []}
+
+    supported_exts = {".pdf", ".txt", ".md", ".csv"}
+    documents = []
+    for f in os.listdir(docs_dir):
+        if Path(f).suffix.lower() in supported_exts:
+            full_path = os.path.join(docs_dir, f)
+            stat = os.stat(full_path)
+            documents.append({
+                "filename": f,
+                "size_bytes": stat.st_size,
+                "modified": stat.st_mtime,
+            })
+
+    return {"documents": documents, "count": len(documents)}
+
+
 @router.get("/schema")
 async def get_schema() -> dict:
     """Get the database schema information."""

@@ -90,7 +90,7 @@ DataPilot routes natural language questions to specialized AI agents that query 
 ### 1. Clone and setup
 
 ```bash
-git clone https://github.com/yourusername/datapilot.git
+git clone https://github.com/weeknd415/datapilot.git
 cd datapilot
 
 # Create virtual environment
