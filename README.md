@@ -4,6 +4,12 @@
 
 Built with LangGraph orchestration, Text-to-SQL, Document AI, and MCP servers — every agent is simultaneously a standalone MCP server usable from Claude Desktop, Cursor, or any MCP-compatible client.
 
+## Live Demo
+
+**Try it now:** [https://datapilot-tiqv.vercel.app](https://datapilot-tiqv.vercel.app)
+
+> **Note:** The backend runs on Render's free tier and spins down after 15 minutes of inactivity. The first request after idle may take 30-60 seconds while the server cold-starts. Subsequent requests are fast.
+
 ---
 
 ## The Problem
