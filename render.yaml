@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: datapilot-api
+    runtime: python
+    plan: free
+    buildCommand: |
+      pip install -e . &&
+      python scripts/seed_database.py
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GUEST_MODE
+        value: "true"
+      - key: AUTO_INGEST_DOCS
+        value: "true"
+      - key: ENV
+        value: "production"
+      - key: LOG_LEVEL
+        value: "WARNING"
+    healthCheckPath: /api/health
+    autoDeploy: true

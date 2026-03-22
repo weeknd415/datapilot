@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     max_retries: int = 3
     request_timeout: int = 30
 
+    # Guest mode & rate limiting
+    guest_mode: bool = True
+    guest_rate_limit: int = 10  # queries per minute
+    auto_ingest_docs: bool = True
+
     # MCP server ports
     mcp_sql_port: int = 8010
     mcp_document_port: int = 8011

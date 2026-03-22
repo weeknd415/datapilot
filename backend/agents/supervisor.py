@@ -328,13 +328,23 @@ class SupervisorAgent:
             "steps": state.get("steps", []) + [step.model_dump()],
         }
 
-    async def process(self, query: str) -> QueryResponse:
+    async def process(
+        self, query: str, session_id: str = "",
+    ) -> QueryResponse:
         """Process a user query through the full agent pipeline."""
+        from backend.core.memory import conversation_memory
+
         start = time.time()
+
+        # Add conversation context if available
+        context = conversation_memory.get_context_string(session_id)
+        enriched_query = query
+        if context:
+            enriched_query = f"{context}\n\nCURRENT QUESTION: {query}"
 
         initial_state: SupervisorState = {
             "messages": [],
-            "query": query,
+            "query": enriched_query,
             "routing_decision": {},
             "sql_result": None,
             "document_result": None,
@@ -363,9 +373,16 @@ class SupervisorAgent:
                 chart_base64 = analytics_r.get("chart_base64")
                 chart_type = analytics_r.get("chart_type")
 
+            answer = final_state.get(
+                "final_answer", "I could not generate an answer."
+            )
+
+            # Save to conversation memory
+            conversation_memory.add_turn(session_id, query, answer)
+
             return QueryResponse(
                 query=query,
-                answer=final_state.get("final_answer", "I could not generate an answer."),
+                answer=answer,
                 confidence=final_state.get("confidence", 0.0),
                 sources=sources,
                 trace=steps,
