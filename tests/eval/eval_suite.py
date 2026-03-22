@@ -20,8 +20,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from backend.agents.sql_agent import SQLAgent
-from backend.agents.document_agent import DocumentAgent
-from backend.agents.supervisor import SupervisorAgent
 from backend.db.database import execute_sql
 
 
@@ -165,9 +163,10 @@ ROUTING_EVAL_CASES = [
 
 async def eval_routing() -> list[EvalResult]:
     """Evaluate supervisor routing accuracy."""
-    from backend.core.llm import get_llm, invoke_llm_with_retry
     from langchain_core.messages import HumanMessage, SystemMessage
+
     from backend.agents.supervisor import ROUTING_PROMPT
+    from backend.core.llm import get_llm, invoke_llm_with_retry
 
     llm = get_llm(temperature=0)
     results = []
