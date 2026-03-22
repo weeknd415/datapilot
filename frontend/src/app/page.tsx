@@ -357,7 +357,7 @@ export default function Home() {
               )}
             </div>
           ) : (
-            <AgentTrace steps={selectedTrace} />
+            <AgentTrace steps={selectedTrace ?? []} />
           )}
         </div>
       )}
