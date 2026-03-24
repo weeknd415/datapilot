@@ -34,12 +34,12 @@ interface UploadedFile {
 }
 
 const EXAMPLE_QUERIES = [
-  "What are the top 5 customers by total revenue?",
-  "Show monthly revenue trends for 2024",
-  "Which products have the highest profit margins?",
-  "How many overdue invoices do we have and what's the total amount?",
-  "Compare Q3 vs Q4 2024 revenue by product category",
-  "What's the average order value by customer tier?",
+  "What is our total MRR and how many active accounts do we have?",
+  "Show MRR growth trends with a chart",
+  "Which accounts have churned and what were the reasons?",
+  "What is the average CSAT score across resolved support tickets?",
+  "Which Enterprise accounts have the most support tickets?",
+  "What are the SLA terms in the GlobalSync contract?",
 ];
 
 export default function Home() {

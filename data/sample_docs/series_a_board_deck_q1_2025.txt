@@ -1,0 +1,106 @@
+DATAPILOT INC. — BOARD UPDATE Q1 2025
+CONFIDENTIAL — FOR BOARD OF DIRECTORS ONLY
+
+=== EXECUTIVE SUMMARY ===
+
+Q1 2025 was a strong quarter. We crossed $100K in MRR for the first time, driven
+primarily by Enterprise expansions and strong Growth-tier conversions from the
+Starter plan. Net Revenue Retention (NRR) hit 118%, up from 112% in Q4 2024.
+
+Key Metrics (Q1 2025):
+- MRR: $102,337 (up 14% QoQ)
+- ARR: $1,228,044
+- Active Accounts: 34
+- New Accounts (Q1): 8
+- Churned Accounts (Q1): 1
+- Net Revenue Retention: 118%
+- Gross Margin: 82%
+- Burn Rate: $65,000/month
+- Runway: 18 months (at current burn)
+
+=== REVENUE BREAKDOWN BY PLAN ===
+
+Enterprise: $54,200 MRR (53% of total) — 6 accounts
+Business:   $28,400 MRR (28% of total) — 9 accounts
+Growth:     $15,200 MRR (15% of total) — 11 accounts
+Starter:     $4,537 MRR (4% of total)  — 8 accounts
+Free:            $0                     — 6 accounts (pipeline)
+
+=== EXPANSION REVENUE ===
+
+Expansion MRR grew 23% QoQ, primarily from seat additions in Enterprise accounts.
+Top expansion drivers:
+1. RetailMax: +$2,400/mo (added 24 seats after department-wide rollout)
+2. MediCare Plus: +$1,800/mo (upgraded from Business to Enterprise)
+3. Atlas Freight: +$1,200/mo (added API access and custom integrations)
+
+=== CHURN ANALYSIS ===
+
+One account churned in Q1: VeloCity Tech ($149/mo Growth plan).
+Reason: Acquired by larger company that has existing BI tooling.
+This was an involuntary churn — not a product issue.
+
+Accounts at risk (flagged by CSM team):
+- AeroSync Ltd: Low feature adoption, only using dashboard (no API, no integrations)
+- SwiftLogic: Support ticket volume 3x average, CSAT trending down
+
+=== PRODUCT METRICS ===
+
+Feature adoption rates (active accounts):
+- Dashboard: 94% (core feature, expected)
+- Reports: 78%
+- API Access: 52%
+- Integrations: 45%
+- Custom Alerts: 38%
+- Advanced Analytics: 31%
+- Team Collaboration: 28%
+- SSO: 22% (Enterprise-only feature)
+- Audit Log: 18% (Enterprise-only)
+
+Most requested features (from support tickets):
+1. Slack integration (23 requests)
+2. Custom dashboard widgets (18 requests)
+3. Scheduled report delivery (15 requests)
+4. Mobile app (12 requests)
+
+=== SUPPORT METRICS ===
+
+Total tickets (Q1): 438
+Resolution rate: 94%
+Average first response time: 34 minutes
+Average resolution time: 12.6 hours
+CSAT score: 4.2/5.0
+
+Ticket breakdown by category:
+- Bug: 28%
+- Feature Request: 22%
+- Onboarding: 18%
+- Integration: 14%
+- Billing: 10%
+- Performance: 8%
+
+=== FINANCIAL PROJECTIONS ===
+
+Q2 2025 targets:
+- MRR target: $120,000 (17% growth)
+- New accounts target: 12
+- Churn target: <2 accounts
+- NRR target: 120%
+
+Pipeline:
+- 6 Enterprise prospects in late-stage evaluation
+- 14 Growth-tier trials currently active
+- Estimated close rate: 40-45%
+
+=== FUNDRAISING UPDATE ===
+
+Series A round: Targeting $5M at $25M pre-money valuation.
+- 3 term sheets received
+- Lead investor selection by April 15
+- Expected close: May 2025
+
+Use of funds:
+- 40% Engineering (hire 4 engineers, 1 ML engineer)
+- 25% Sales & Marketing (hire 3 AEs, 2 SDRs)
+- 20% Infrastructure (SOC2 Type II, multi-region deployment)
+- 15% Operations & G&A

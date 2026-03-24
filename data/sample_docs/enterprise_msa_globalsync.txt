@@ -1,0 +1,92 @@
+MASTER SERVICE AGREEMENT
+
+Between: DataPilot Inc. ("Provider")
+And: GlobalSync Ltd. ("Customer")
+Effective Date: February 1, 2025
+Contract Term: 24 months (through January 31, 2027)
+
+=== 1. SUBSCRIPTION TERMS ===
+
+1.1 Plan: Enterprise
+1.2 Base Fee: $1,499/month
+1.3 Seat License: 18 seats at $100/seat/month = $1,800/month
+1.4 Total Monthly Fee: $3,299/month
+1.5 Annual Contract Value (ACV): $39,588
+1.6 Billing Cycle: Annual (prepaid)
+1.7 Payment Terms: Net 30 from invoice date
+
+1.8 Included Features:
+    - Unlimited SQL queries against connected databases
+    - Document AI processing (up to 1,000 documents)
+    - Analytics and chart generation
+    - API access (10,000 requests/month)
+    - SSO integration (SAML 2.0 / OIDC)
+    - Audit logging
+    - Dedicated CSM (Customer Success Manager)
+    - Priority support (4-hour SLA for critical issues)
+
+=== 2. SERVICE LEVEL AGREEMENT ===
+
+2.1 Uptime Commitment: 99.9% monthly uptime
+2.2 Measurement: Calculated as ((total_minutes - downtime_minutes) / total_minutes) * 100
+2.3 Exclusions: Scheduled maintenance (max 4 hours/month, with 48-hour notice)
+
+2.4 Uptime Credits:
+    - 99.0% - 99.9%: 10% credit on monthly fee
+    - 95.0% - 99.0%: 25% credit on monthly fee
+    - Below 95.0%: 50% credit on monthly fee
+
+2.5 Response Time SLAs:
+    - Critical (system down): 1 hour response, 4 hour resolution target
+    - High (major feature broken): 4 hour response, 24 hour resolution target
+    - Medium (minor issue): 8 hour response, 72 hour resolution target
+    - Low (enhancement request): 24 hour response, best effort resolution
+
+=== 3. DATA HANDLING ===
+
+3.1 Data Ownership: Customer retains all ownership of data processed through the platform.
+3.2 Data Location: United States (primary), Europe (backup)
+3.3 Data Processing: Provider processes data solely for providing the subscribed services.
+3.4 Data Deletion: Upon contract termination, Provider will delete all Customer data
+    within 30 days and provide written confirmation.
+3.5 Subprocessors: Groq Inc. (LLM inference), Google Cloud (fallback LLM)
+
+=== 4. SECURITY ===
+
+4.1 Provider maintains SOC 2 Type I compliance (Type II in progress).
+4.2 All data encrypted at rest (AES-256) and in transit (TLS 1.3).
+4.3 Provider will notify Customer of any data breach within 72 hours.
+4.4 Annual penetration testing by independent third party.
+4.5 Vulnerability remediation: Critical within 24 hours, High within 7 days.
+
+=== 5. INTELLECTUAL PROPERTY ===
+
+5.1 Provider retains all IP rights to the DataPilot platform.
+5.2 Customer retains all IP rights to their data and any custom configurations.
+5.3 Provider may use anonymized, aggregated usage data for product improvement.
+5.4 No Customer data will be used to train AI/ML models without explicit consent.
+
+=== 6. TERMINATION ===
+
+6.1 Either party may terminate with 90 days written notice.
+6.2 Customer may terminate immediately if Provider breaches SLA for 3 consecutive months.
+6.3 Early termination fee: Remaining contract value at 50% discount.
+6.4 Provider will provide data export in CSV/JSON format within 14 days of termination notice.
+
+=== 7. LIMITATION OF LIABILITY ===
+
+7.1 Provider's total liability shall not exceed 12 months of fees paid by Customer.
+7.2 Neither party shall be liable for indirect, incidental, or consequential damages.
+7.3 Exclusions: Gross negligence, willful misconduct, or breach of confidentiality.
+
+=== SIGNATURES ===
+
+DataPilot Inc.
+Name: [CEO Name]
+Title: Chief Executive Officer
+Date: February 1, 2025
+
+GlobalSync Ltd.
+Name: [Customer Contact]
+Title: VP of Operations
+Date: February 1, 2025

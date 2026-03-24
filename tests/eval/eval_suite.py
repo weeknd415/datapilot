@@ -40,45 +40,56 @@ class EvalResult:
 
 SQL_EVAL_CASES = [
     {
-        "question": "How many customers do we have?",
+        "question": "How many accounts do we have?",
         "expected_check": lambda rows: (
-            len(rows) == 1 and rows[0].get("total", 0) == 30
+            len(rows) == 1
+            and any(v == 40 for v in rows[0].values() if isinstance(v, int))
         ),
         "description": "Simple COUNT query",
     },
     {
-        "question": "What is the total number of orders?",
+        "question": "How many active accounts do we have?",
         "expected_check": lambda rows: (
             len(rows) == 1
-            and any(v > 2000 for v in rows[0].values() if isinstance(v, (int, float)))
+            and any(v == 34 for v in rows[0].values() if isinstance(v, int))
         ),
-        "description": "Total orders count (~2079)",
+        "description": "Filtered COUNT (active accounts = 34)",
     },
     {
-        "question": (
-            "List the top 3 customers by total order amount"
-        ),
+        "question": "List the top 3 accounts by MRR",
         "expected_check": lambda rows: len(rows) == 3,
-        "description": "Top-N query with aggregation",
+        "description": "Top-N query with ORDER BY",
     },
     {
-        "question": "How many products are in the Software category?",
+        "question": "How many support tickets are there with critical priority?",
         "expected_check": lambda rows: (
             len(rows) == 1
-            and any(v == 3 for v in rows[0].values() if isinstance(v, int))
+            and any(isinstance(v, int) and v > 0 for v in rows[0].values())
         ),
-        "description": "Filtered COUNT query",
+        "description": "Filtered COUNT on support_tickets",
     },
     {
         "question": (
-            "What is the average order value "
-            "for Enterprise tier customers?"
+            "What is the total MRR from expansion events?"
         ),
         "expected_check": lambda rows: (
             len(rows) == 1
-            and any(isinstance(v, float) and v > 0 for v in rows[0].values())
+            and any(isinstance(v, (int, float)) and v > 0 for v in rows[0].values())
         ),
-        "description": "AVG with JOIN and WHERE",
+        "description": "SUM with WHERE on mrr_events",
+    },
+    {
+        "question": "Which accounts have churned and what was their last MRR?",
+        "expected_check": lambda rows: len(rows) >= 3,
+        "description": "JOIN query: churned accounts with MRR",
+    },
+    {
+        "question": "What is the average CSAT score across all resolved tickets?",
+        "expected_check": lambda rows: (
+            len(rows) == 1
+            and any(isinstance(v, float) and 1 <= v <= 5 for v in rows[0].values())
+        ),
+        "description": "AVG with filter on support_tickets",
     },
 ]
 
@@ -137,26 +148,29 @@ async def eval_sql_accuracy() -> list[EvalResult]:
 
 ROUTING_EVAL_CASES = [
     {
-        "question": "What are the top customers?",
+        "question": "What is our total MRR?",
         "expected_agents": {"sql_agent"},
-        "description": "Database question → SQL agent",
+        "description": "SaaS metric query -> SQL agent",
     },
     {
-        "question": (
-            "What are the payment terms in the contract?"
-        ),
+        "question": "What are the SLA terms in our SOC2 report?",
         "expected_agents": {"document_agent"},
-        "description": "Document question → Document agent",
+        "description": "Document question -> Document agent",
     },
     {
-        "question": "Show revenue trends with a chart",
+        "question": "Show MRR growth trends with a chart",
         "expected_agents": {"sql_agent", "analytics_agent"},
-        "description": "Analytics question → SQL + Analytics",
+        "description": "Analytics question -> SQL + Analytics",
     },
     {
         "question": "Hello, what can you do?",
         "expected_agents": set(),  # direct answer
-        "description": "Greeting → direct response",
+        "description": "Greeting -> direct response",
+    },
+    {
+        "question": "Which churned accounts had the most support tickets?",
+        "expected_agents": {"sql_agent"},
+        "description": "Complex SaaS query -> SQL agent",
     },
 ]
 
@@ -192,10 +206,8 @@ async def eval_routing() -> list[EvalResult]:
             routed_agents = set(parsed.get("agents", []))
 
             if case["expected_agents"]:
-                # Check if expected agents are a subset
                 match = case["expected_agents"].issubset(routed_agents)
             else:
-                # Expected direct answer
                 match = (
                     len(routed_agents) == 0
                     and parsed.get("direct_answer") is not None
@@ -229,14 +241,18 @@ async def eval_routing() -> list[EvalResult]:
 def eval_sql_safety() -> list[EvalResult]:
     """Evaluate SQL injection protection."""
     dangerous_queries = [
-        ("DROP TABLE", "DROP TABLE customers"),
-        ("DELETE", "DELETE FROM orders WHERE 1=1"),
-        ("UPDATE", "UPDATE customers SET tier='Free'"),
+        ("DROP TABLE", "DROP TABLE accounts"),
+        ("DELETE", "DELETE FROM subscriptions WHERE 1=1"),
+        ("UPDATE", "UPDATE accounts SET plan='Free'"),
         (
             "SQL injection via SELECT",
-            "SELECT * FROM customers; DROP TABLE orders",
+            "SELECT * FROM accounts; DROP TABLE invoices",
         ),
-        ("INSERT", "INSERT INTO customers VALUES (99,'x','x','x','x','x','x','x','x')"),
+        (
+            "INSERT",
+            "INSERT INTO accounts VALUES "
+            "(99,'x','x','Free',0,0,'active','x',1,'2024-01-01',NULL,'NA',NULL)",
+        ),
     ]
 
     results = []

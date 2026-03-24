@@ -1,7 +1,8 @@
-"""Seed the demo SQLite database with realistic business data.
+"""Seed the demo SQLite database with realistic B2B SaaS metrics data.
 
-Creates tables for: customers, products, orders, order_items, invoices, employees, departments.
-Generates realistic data spanning 2 years with seasonal patterns.
+Creates tables for: accounts, subscriptions, mrr_events, feature_usage,
+support_tickets, invoices. Generates 18 months of realistic SaaS data
+with churn patterns, expansion revenue, and seasonal trends.
 """
 
 from __future__ import annotations
@@ -15,296 +16,548 @@ from pathlib import Path
 DB_PATH = Path(__file__).parent.parent / "data" / "sample_db" / "business.db"
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS departments (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    budget REAL NOT NULL,
-    head_count INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS employees (
-    id INTEGER PRIMARY KEY,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    department_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    salary REAL NOT NULL,
-    hire_date TEXT NOT NULL,
-    FOREIGN KEY (department_id) REFERENCES departments(id)
-);
-
-CREATE TABLE IF NOT EXISTS customers (
+CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY,
     company_name TEXT NOT NULL,
-    contact_name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    phone TEXT,
+    domain TEXT NOT NULL UNIQUE,
+    plan TEXT NOT NULL CHECK (plan IN ('Free', 'Starter', 'Growth', 'Business', 'Enterprise')),
+    mrr REAL NOT NULL DEFAULT 0,
+    arr REAL GENERATED ALWAYS AS (mrr * 12) STORED,
+    status TEXT NOT NULL CHECK (status IN ('active', 'churned', 'trial', 'paused')),
     industry TEXT NOT NULL,
+    employee_count INTEGER NOT NULL,
+    signup_date TEXT NOT NULL,
+    churn_date TEXT,
     region TEXT NOT NULL,
-    tier TEXT NOT NULL CHECK (tier IN ('Enterprise', 'Mid-Market', 'SMB')),
-    created_at TEXT NOT NULL
+    csm_owner TEXT
 );
 
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE IF NOT EXISTS subscriptions (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    category TEXT NOT NULL,
-    unit_price REAL NOT NULL,
-    cost REAL NOT NULL,
-    stock_quantity INTEGER NOT NULL,
-    is_active INTEGER NOT NULL DEFAULT 1
+    account_id INTEGER NOT NULL,
+    plan TEXT NOT NULL,
+    mrr REAL NOT NULL,
+    seats INTEGER NOT NULL DEFAULT 1,
+    started_at TEXT NOT NULL,
+    ended_at TEXT,
+    is_current INTEGER NOT NULL DEFAULT 1,
+    billing_cycle TEXT NOT NULL CHECK (billing_cycle IN ('monthly', 'annual')),
+    FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE IF NOT EXISTS mrr_events (
     id INTEGER PRIMARY KEY,
-    customer_id INTEGER NOT NULL,
-    order_date TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled')),
-    total_amount REAL NOT NULL,
-    discount_percent REAL DEFAULT 0,
-    sales_rep_id INTEGER,
-    FOREIGN KEY (customer_id) REFERENCES customers(id),
-    FOREIGN KEY (sales_rep_id) REFERENCES employees(id)
+    account_id INTEGER NOT NULL,
+    event_type TEXT NOT NULL CHECK (
+        event_type IN ('new', 'expansion', 'contraction', 'churn', 'reactivation')
+    ),
+    mrr_delta REAL NOT NULL,
+    previous_mrr REAL NOT NULL DEFAULT 0,
+    new_mrr REAL NOT NULL,
+    event_date TEXT NOT NULL,
+    reason TEXT,
+    FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
-CREATE TABLE IF NOT EXISTS order_items (
+CREATE TABLE IF NOT EXISTS feature_usage (
     id INTEGER PRIMARY KEY,
-    order_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    quantity INTEGER NOT NULL,
-    unit_price REAL NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    account_id INTEGER NOT NULL,
+    feature_name TEXT NOT NULL,
+    daily_active_users INTEGER NOT NULL DEFAULT 0,
+    event_count INTEGER NOT NULL DEFAULT 0,
+    date TEXT NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(id)
+);
+
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id INTEGER PRIMARY KEY,
+    account_id INTEGER NOT NULL,
+    subject TEXT NOT NULL,
+    priority TEXT NOT NULL CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+    category TEXT NOT NULL CHECK (
+        category IN ('bug', 'feature_request', 'billing',
+                     'onboarding', 'integration', 'performance')
+    ),
+    status TEXT NOT NULL CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+    created_at TEXT NOT NULL,
+    resolved_at TEXT,
+    first_response_minutes INTEGER,
+    csat_score INTEGER CHECK (csat_score BETWEEN 1 AND 5),
+    FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
 CREATE TABLE IF NOT EXISTS invoices (
     id INTEGER PRIMARY KEY,
-    order_id INTEGER NOT NULL,
+    account_id INTEGER NOT NULL,
     invoice_number TEXT NOT NULL UNIQUE,
+    amount REAL NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('draft', 'sent', 'paid', 'overdue', 'void')),
     issue_date TEXT NOT NULL,
     due_date TEXT NOT NULL,
-    amount REAL NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled')),
     paid_date TEXT,
-    FOREIGN KEY (order_id) REFERENCES orders(id)
+    FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 """
 
-# Realistic data generators
-COMPANY_NAMES = [
-    "Acme Corp", "TechFlow Inc", "GlobalSync Ltd", "NovaStar Systems",
-    "Pinnacle Solutions", "CloudBridge IO", "DataVault Corp", "SwiftLogic",
-    "CyberNest Inc", "BlueHorizon Tech", "Quantum Dynamics", "PeakForce Ltd",
-    "IronClad Security", "NetPulse Systems", "SkyLane Analytics",
-    "OmniWare Solutions", "FusionGrid Corp", "ClearPath Digital",
-    "EdgePoint Labs", "CoreStack Inc", "MindBridge AI", "AeroSync Ltd",
-    "TrueNorth Data", "VeloCity Tech", "PrismView Corp", "HexaCore Systems",
-    "TidalWave IO", "NorthStar Consulting", "RapidScale Inc", "InfiniteLoop Tech",
+# ── Realistic SaaS company data ──────────────────────────────────
+
+COMPANIES = [
+    ("Acme Corp", "acme.com", "Manufacturing", 450, "North America"),
+    ("TechFlow Solutions", "techflow.io", "Technology", 120, "North America"),
+    ("MediCare Plus", "medicareplus.com", "Healthcare", 2200, "North America"),
+    ("FinEdge Capital", "finedge.com", "Finance", 80, "North America"),
+    ("RetailMax", "retailmax.com", "Retail", 3500, "North America"),
+    ("EduVerse", "eduverse.org", "Education", 600, "North America"),
+    ("GreenEnergy Co", "greenenergy.co", "Energy", 340, "Europe"),
+    ("LogiPrime", "logiprime.com", "Logistics", 900, "Europe"),
+    ("DataNova Labs", "datanova.ai", "Technology", 45, "North America"),
+    ("CloudBridge IO", "cloudbridge.io", "Technology", 200, "North America"),
+    ("NexGen Pharma", "nexgenpharma.com", "Healthcare", 1800, "Europe"),
+    ("UrbanBuild Inc", "urbanbuild.com", "Construction", 650, "North America"),
+    ("SwiftLogic", "swiftlogic.dev", "Technology", 30, "Asia Pacific"),
+    ("PeakForce Ltd", "peakforce.co.uk", "Manufacturing", 1200, "Europe"),
+    ("SkyLane Analytics", "skylane.io", "Technology", 75, "North America"),
+    ("CoreStack Inc", "corestack.com", "Technology", 150, "North America"),
+    ("TrueNorth Data", "truenorth.ca", "Technology", 90, "North America"),
+    ("AeroSync Ltd", "aerosync.de", "Aerospace", 400, "Europe"),
+    ("VeloCity Tech", "velocity.tech", "Technology", 60, "Asia Pacific"),
+    ("HexaCore Systems", "hexacore.com", "Technology", 110, "North America"),
+    ("Bright Health", "brighthealth.com", "Healthcare", 500, "North America"),
+    ("Atlas Freight", "atlasfreight.com", "Logistics", 1500, "North America"),
+    ("Pinnacle HR", "pinnaclehr.com", "Services", 250, "Europe"),
+    ("OmniWare Solutions", "omniware.io", "Technology", 85, "Asia Pacific"),
+    ("FusionGrid Corp", "fusiongrid.com", "Energy", 700, "North America"),
+    ("ClearPath Digital", "clearpath.co", "Marketing", "160", "North America"),
+    ("EdgePoint Labs", "edgepoint.ai", "Technology", 40, "North America"),
+    ("IronClad Security", "ironclad.io", "Cybersecurity", 95, "North America"),
+    ("RapidScale Inc", "rapidscale.com", "Technology", 180, "Europe"),
+    ("MindBridge AI", "mindbridge.ai", "Technology", 55, "North America"),
+    ("Quantum Dynamics", "quantumdyn.com", "Technology", 220, "North America"),
+    ("NetPulse Systems", "netpulse.com", "Telecommunications", 800, "North America"),
+    ("NovaStar Systems", "novastar.io", "Technology", 130, "Asia Pacific"),
+    ("BlueHorizon Tech", "bluehorizon.tech", "Technology", 70, "Europe"),
+    ("TidalWave IO", "tidalwave.io", "Technology", 100, "North America"),
+    ("InfiniteLoop Tech", "infiniteloop.dev", "Technology", 35, "North America"),
+    ("CyberNest Inc", "cybernest.com", "Cybersecurity", 140, "North America"),
+    ("NorthStar Consulting", "northstar.co", "Consulting", 300, "Europe"),
+    ("GlobalSync Ltd", "globalsync.com", "Technology", 175, "Asia Pacific"),
+    ("PrismView Corp", "prismview.com", "Marketing", 210, "North America"),
 ]
 
-INDUSTRIES = ["Technology", "Healthcare", "Finance", "Manufacturing", "Retail", "Education", "Energy"]
-REGIONS = ["North America", "Europe", "Asia Pacific", "Latin America", "Middle East"]
-TIERS = ["Enterprise", "Mid-Market", "SMB"]
+PLAN_PRICING = {
+    "Free": 0,
+    "Starter": 49,
+    "Growth": 149,
+    "Business": 399,
+    "Enterprise": 1499,
+}
 
-PRODUCT_CATALOG = [
-    ("DataPilot Pro", "Software", 299.99, 45.0),
-    ("DataPilot Enterprise", "Software", 999.99, 150.0),
-    ("Analytics Dashboard", "Software", 149.99, 22.0),
-    ("Cloud Storage 1TB", "Infrastructure", 49.99, 12.0),
-    ("Cloud Storage 10TB", "Infrastructure", 199.99, 48.0),
-    ("API Gateway", "Infrastructure", 79.99, 15.0),
-    ("Security Suite", "Security", 399.99, 60.0),
-    ("Compliance Module", "Security", 249.99, 37.0),
-    ("Training Package", "Services", 599.99, 200.0),
-    ("Premium Support", "Services", 199.99, 80.0),
-    ("Data Migration", "Services", 1499.99, 500.0),
-    ("Custom Integration", "Services", 2499.99, 800.0),
+SEAT_MULTIPLIER = {
+    "Free": 0,
+    "Starter": 10,
+    "Growth": 25,
+    "Business": 50,
+    "Enterprise": 100,
+}
+
+CSM_OWNERS = [
+    "Sarah Chen", "Mike Rodriguez", "Emily Park", "James Wilson",
+    "Lisa Thompson", "David Kim",
 ]
 
-DEPARTMENTS = [
-    ("Engineering", 2500000, 45),
-    ("Sales", 1800000, 30),
-    ("Marketing", 900000, 15),
-    ("Customer Success", 600000, 12),
-    ("Finance", 400000, 8),
-    ("HR", 300000, 6),
+FEATURES = [
+    "dashboard", "reports", "api_access", "integrations",
+    "custom_alerts", "data_export", "team_collaboration",
+    "advanced_analytics", "sso", "audit_log",
 ]
 
-FIRST_NAMES = ["James", "Sarah", "Michael", "Emily", "David", "Lisa", "Robert", "Jennifer",
-               "William", "Maria", "Richard", "Linda", "Joseph", "Patricia", "Thomas",
-               "Elizabeth", "Daniel", "Susan", "Matthew", "Jessica"]
-LAST_NAMES = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-              "Rodriguez", "Martinez", "Anderson", "Taylor", "Thomas", "Moore", "Jackson",
-              "Martin", "Lee", "Thompson", "White", "Harris"]
-TITLES = ["Software Engineer", "Senior Engineer", "Sales Representative", "Account Executive",
-          "Marketing Manager", "Data Analyst", "Product Manager", "VP of Engineering",
-          "Director of Sales", "Support Engineer"]
+TICKET_SUBJECTS = {
+    "bug": [
+        "Dashboard loading slowly", "Export fails for large datasets",
+        "SSO login intermittent failure", "Chart rendering broken on Safari",
+        "API timeout on bulk queries", "Notification emails not sending",
+        "Duplicate data in reports", "Filter reset on page navigation",
+    ],
+    "feature_request": [
+        "Custom dashboard widgets", "Slack integration",
+        "Mobile app support", "Dark mode", "Bulk user import",
+        "Scheduled report delivery", "Custom API rate limits",
+    ],
+    "billing": [
+        "Invoice discrepancy", "Need plan downgrade",
+        "Annual billing switch", "Tax exemption certificate",
+        "Refund request", "Missing invoice for last month",
+    ],
+    "onboarding": [
+        "Need help with initial setup", "Data migration assistance",
+        "Team training session request", "API documentation unclear",
+        "SSO configuration help", "Custom field setup",
+    ],
+    "integration": [
+        "Salesforce sync broken", "HubSpot connector issue",
+        "Slack bot not responding", "Webhook delivery failing",
+        "Jira integration setup", "Google Workspace SSO",
+    ],
+    "performance": [
+        "Slow query execution", "High API latency",
+        "Dashboard timeout", "Report generation taking too long",
+        "Search indexing delay", "Real-time data lag",
+    ],
+}
 
 
 def seed_database() -> None:
     os.makedirs(DB_PATH.parent, exist_ok=True)
 
-    # Remove existing DB
     if DB_PATH.exists():
         DB_PATH.unlink()
 
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
-
-    # Create tables
     cursor.executescript(SCHEMA)
 
-    random.seed(42)  # Reproducible data
+    random.seed(42)
 
-    # 1. Departments
-    for i, (name, budget, hc) in enumerate(DEPARTMENTS, 1):
-        cursor.execute(
-            "INSERT INTO departments VALUES (?, ?, ?, ?)",
-            (i, name, budget, hc),
-        )
-
-    # 2. Employees
-    emp_id = 1
-    for dept_id in range(1, len(DEPARTMENTS) + 1):
-        dept_hc = DEPARTMENTS[dept_id - 1][2]
-        for _ in range(min(dept_hc, 8)):  # Cap per dept for demo
-            first = random.choice(FIRST_NAMES)
-            last = random.choice(LAST_NAMES)
-            hire_date = (datetime(2022, 1, 1) + timedelta(days=random.randint(0, 700))).strftime("%Y-%m-%d")
-            salary = random.randint(65000, 180000)
-            title = random.choice(TITLES)
-            cursor.execute(
-                "INSERT INTO employees VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (emp_id, first, last, f"{first.lower()}.{last.lower()}{emp_id}@datapilot.io",
-                 dept_id, title, salary, hire_date),
-            )
-            emp_id += 1
-
-    total_employees = emp_id - 1
-    sales_reps = list(range(1, total_employees + 1))
-
-    # 3. Customers
-    for i, company in enumerate(COMPANY_NAMES, 1):
-        contact_first = random.choice(FIRST_NAMES)
-        contact_last = random.choice(LAST_NAMES)
-        created = (datetime(2023, 1, 1) + timedelta(days=random.randint(0, 500))).strftime("%Y-%m-%d")
-        cursor.execute(
-            "INSERT INTO customers VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (i, company, f"{contact_first} {contact_last}",
-             f"{contact_first.lower()}@{company.lower().replace(' ', '')}.com",
-             f"+1-{random.randint(200,999)}-{random.randint(100,999)}-{random.randint(1000,9999)}",
-             random.choice(INDUSTRIES), random.choice(REGIONS),
-             random.choice(TIERS), created),
-        )
-
-    # 4. Products
-    for i, (name, cat, price, cost) in enumerate(PRODUCT_CATALOG, 1):
-        cursor.execute(
-            "INSERT INTO products VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (i, name, cat, price, cost, random.randint(50, 500), 1),
-        )
-
-    # 5. Orders (spanning 2024-2025 with seasonal patterns)
-    order_id = 1
-    item_id = 1
     base_date = datetime(2024, 1, 1)
+    now = datetime(2025, 6, 30)
 
-    for day_offset in range(550):  # ~1.5 years
-        date = base_date + timedelta(days=day_offset)
+    # ── 1. Accounts ──────────────────────────────────────────────
 
-        # Seasonal multiplier: more orders in Q4, fewer in Q1
-        month = date.month
-        if month in (10, 11, 12):
-            daily_orders = random.randint(3, 8)
-        elif month in (1, 2, 3):
-            daily_orders = random.randint(1, 4)
+    accounts_data = []
+    for i, (name, domain, industry, emp, region) in enumerate(COMPANIES, 1):
+        emp_count = int(emp) if isinstance(emp, str) else emp
+        # Assign initial plan based on company size
+        if emp_count > 1000:
+            plan = random.choice(["Business", "Enterprise"])
+        elif emp_count > 200:
+            plan = random.choice(["Growth", "Business"])
+        elif emp_count > 50:
+            plan = random.choice(["Starter", "Growth"])
         else:
-            daily_orders = random.randint(2, 6)
+            plan = random.choice(["Free", "Starter"])
 
-        for _ in range(daily_orders):
-            customer_id = random.randint(1, len(COMPANY_NAMES))
-            sales_rep = random.choice(sales_reps)
-            discount = random.choice([0, 0, 0, 5, 10, 15, 20])
+        # Calculate MRR based on plan + seats
+        base_mrr = PLAN_PRICING[plan]
+        seats = max(1, emp_count // 10) if plan != "Free" else 0
+        seat_cost = SEAT_MULTIPLIER.get(plan, 0)
+        mrr = base_mrr + (seats * seat_cost) if plan != "Free" else 0
 
-            # Generate order items
-            num_items = random.randint(1, 4)
-            items = []
-            total = 0
-            for _ in range(num_items):
-                product_id = random.randint(1, len(PRODUCT_CATALOG))
-                qty = random.randint(1, 10)
-                price = PRODUCT_CATALOG[product_id - 1][2]
-                items.append((item_id, order_id, product_id, qty, price))
-                total += qty * price
-                item_id += 1
+        # Signup date: spread across 18 months
+        signup_offset = random.randint(0, 450)
+        signup_date = (base_date + timedelta(days=signup_offset)).strftime("%Y-%m-%d")
 
-            total *= (1 - discount / 100)
-
-            # Determine status based on date
-            days_ago = (datetime(2025, 7, 1) - date).days
-            if days_ago > 30:
-                status = random.choice(["Delivered", "Delivered", "Delivered", "Cancelled"])
-            elif days_ago > 7:
-                status = random.choice(["Delivered", "Shipped", "Shipped"])
+        # ~15% churn rate
+        status = "active"
+        churn_date = None
+        if random.random() < 0.15 and plan != "Free":
+            status = "churned"
+            churn_offset = random.randint(60, 400)
+            churn_dt = base_date + timedelta(days=signup_offset + churn_offset)
+            if churn_dt < now:
+                churn_date = churn_dt.strftime("%Y-%m-%d")
             else:
-                status = random.choice(["Pending", "Confirmed", "Shipped"])
+                status = "active"
+                churn_date = None
+        elif plan == "Free" and random.random() < 0.3:
+            status = "trial"
 
-            cursor.execute(
-                "INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (order_id, customer_id, date.strftime("%Y-%m-%d"),
-                 status, round(total, 2), discount, sales_rep),
-            )
-
-            for item in items:
-                cursor.execute(
-                    "INSERT INTO order_items VALUES (?, ?, ?, ?, ?)", item
-                )
-
-            order_id += 1
-
-    # 6. Invoices
-    invoice_id = 1
-    cursor.execute("SELECT id, order_date, total_amount, status FROM orders WHERE status != 'Cancelled'")
-    orders = cursor.fetchall()
-
-    for oid, order_date, amount, status in orders:
-        issue_date = datetime.strptime(order_date, "%Y-%m-%d")
-        due_date = issue_date + timedelta(days=30)
-        inv_number = f"INV-{issue_date.strftime('%Y%m')}-{invoice_id:05d}"
-
-        if status == "Delivered":
-            inv_status = random.choice(["Paid", "Paid", "Paid", "Overdue"])
-            paid_date = (issue_date + timedelta(days=random.randint(5, 45))).strftime("%Y-%m-%d")
-            if inv_status == "Overdue":
-                paid_date = None
-        elif status in ("Shipped", "Confirmed"):
-            inv_status = "Sent"
-            paid_date = None
-        else:
-            inv_status = "Draft"
-            paid_date = None
+        csm = random.choice(CSM_OWNERS) if plan in ("Business", "Enterprise") else None
 
         cursor.execute(
-            "INSERT INTO invoices VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (invoice_id, oid, inv_number, order_date,
-             due_date.strftime("%Y-%m-%d"), round(amount, 2),
-             inv_status, paid_date),
+            "INSERT INTO accounts (id, company_name, domain, plan, mrr, status, "
+            "industry, employee_count, signup_date, churn_date, region, csm_owner) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (i, name, domain, plan, round(mrr, 2), status, industry,
+             emp_count, signup_date, churn_date, region, csm),
         )
-        invoice_id += 1
+        accounts_data.append({
+            "id": i, "plan": plan, "mrr": mrr, "status": status,
+            "signup_date": signup_date, "seats": seats,
+        })
+
+    num_accounts = len(COMPANIES)
+
+    # ── 2. Subscriptions ─────────────────────────────────────────
+
+    sub_id = 1
+    for acct in accounts_data:
+        if acct["plan"] == "Free":
+            continue
+
+        billing = "annual" if random.random() < 0.4 else "monthly"
+        cursor.execute(
+            "INSERT INTO subscriptions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (sub_id, acct["id"], acct["plan"], round(acct["mrr"], 2),
+             acct["seats"], acct["signup_date"], None, 1, billing),
+        )
+        sub_id += 1
+
+        # ~30% of accounts had a plan change (upgrade or downgrade)
+        if random.random() < 0.30:
+            plans = list(PLAN_PRICING.keys())
+            current_idx = plans.index(acct["plan"])
+            if random.random() < 0.75 and current_idx < len(plans) - 1:
+                new_plan = plans[current_idx + 1]  # upgrade
+            elif current_idx > 1:
+                new_plan = plans[current_idx - 1]  # downgrade
+            else:
+                continue
+
+            change_date = datetime.strptime(acct["signup_date"], "%Y-%m-%d")
+            change_date += timedelta(days=random.randint(30, 180))
+            if change_date >= now:
+                continue
+
+            new_mrr = PLAN_PRICING[new_plan] + (acct["seats"] * SEAT_MULTIPLIER.get(new_plan, 0))
+            # End old subscription
+            cursor.execute(
+                "UPDATE subscriptions SET ended_at = ?, is_current = 0 WHERE id = ?",
+                (change_date.strftime("%Y-%m-%d"), sub_id - 1),
+            )
+            # New subscription
+            cursor.execute(
+                "INSERT INTO subscriptions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (sub_id, acct["id"], new_plan, round(new_mrr, 2),
+                 acct["seats"], change_date.strftime("%Y-%m-%d"), None, 1,
+                 billing),
+            )
+            sub_id += 1
+
+    # ── 3. MRR Events ────────────────────────────────────────────
+
+    mrr_id = 1
+    for acct in accounts_data:
+        if acct["plan"] == "Free":
+            continue
+
+        # New business event
+        cursor.execute(
+            "INSERT INTO mrr_events VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (mrr_id, acct["id"], "new", round(acct["mrr"], 2), 0,
+             round(acct["mrr"], 2), acct["signup_date"], "New signup"),
+        )
+        mrr_id += 1
+
+        # Random expansion/contraction events
+        current_mrr = acct["mrr"]
+        event_date = datetime.strptime(acct["signup_date"], "%Y-%m-%d")
+
+        for _ in range(random.randint(0, 3)):
+            event_date += timedelta(days=random.randint(30, 120))
+            if event_date >= now:
+                break
+
+            if random.random() < 0.65:  # 65% expansion
+                delta = round(current_mrr * random.uniform(0.1, 0.5), 2)
+                new_mrr = round(current_mrr + delta, 2)
+                reasons = [
+                    "Added seats", "Plan upgrade", "Add-on purchase",
+                    "Volume increase", "Premium feature adoption",
+                ]
+                cursor.execute(
+                    "INSERT INTO mrr_events VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (mrr_id, acct["id"], "expansion", delta, current_mrr,
+                     new_mrr, event_date.strftime("%Y-%m-%d"),
+                     random.choice(reasons)),
+                )
+                current_mrr = new_mrr
+            else:  # 35% contraction
+                delta = round(current_mrr * random.uniform(0.05, 0.25), 2)
+                new_mrr = round(current_mrr - delta, 2)
+                reasons = [
+                    "Removed seats", "Plan downgrade", "Budget cut",
+                    "Reduced usage",
+                ]
+                cursor.execute(
+                    "INSERT INTO mrr_events VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (mrr_id, acct["id"], "contraction", -delta, current_mrr,
+                     new_mrr, event_date.strftime("%Y-%m-%d"),
+                     random.choice(reasons)),
+                )
+                current_mrr = new_mrr
+            mrr_id += 1
+
+        # Churn event if applicable
+        if acct["status"] == "churned":
+            churn_reasons = [
+                "Switched to competitor", "Budget constraints",
+                "Product didn't meet needs", "Company acquired",
+                "Lack of key features",
+            ]
+            cursor.execute(
+                "INSERT INTO mrr_events VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (mrr_id, acct["id"], "churn", -current_mrr, current_mrr,
+                 0, acct.get("churn_date", now.strftime("%Y-%m-%d")),
+                 random.choice(churn_reasons)),
+            )
+            mrr_id += 1
+
+    # ── 4. Feature Usage (daily, last 90 days) ───────────────────
+
+    usage_id = 1
+    for day_offset in range(90):
+        date = (now - timedelta(days=89 - day_offset)).strftime("%Y-%m-%d")
+        # Sample ~15 accounts per day to keep data manageable
+        sampled = random.sample(range(1, num_accounts + 1), min(15, num_accounts))
+
+        for acct_id in sampled:
+            acct = accounts_data[acct_id - 1]
+            if acct["status"] == "churned":
+                continue
+
+            num_features = random.randint(2, 6)
+            used_features = random.sample(FEATURES, num_features)
+
+            for feature in used_features:
+                dau = random.randint(1, max(1, acct["seats"]))
+                events = dau * random.randint(5, 50)
+                cursor.execute(
+                    "INSERT INTO feature_usage VALUES (?, ?, ?, ?, ?, ?)",
+                    (usage_id, acct_id, feature, dau, events, date),
+                )
+                usage_id += 1
+
+    # ── 5. Support Tickets ───────────────────────────────────────
+
+    ticket_id = 1
+    for day_offset in range(450):
+        date = base_date + timedelta(days=day_offset)
+        if date > now:
+            break
+
+        # 2-6 tickets per day
+        daily_tickets = random.randint(2, 6)
+        for _ in range(daily_tickets):
+            acct_id = random.randint(1, num_accounts)
+            category = random.choice(list(TICKET_SUBJECTS.keys()))
+            subject = random.choice(TICKET_SUBJECTS[category])
+            priority = random.choices(
+                ["low", "medium", "high", "critical"],
+                weights=[30, 40, 20, 10],
+            )[0]
+
+            created = date + timedelta(
+                hours=random.randint(8, 18),
+                minutes=random.randint(0, 59),
+            )
+
+            # Resolution
+            days_ago = (now - date).days
+            if days_ago > 7:
+                status = random.choices(
+                    ["resolved", "closed"],
+                    weights=[60, 40],
+                )[0]
+                resolve_hours = random.randint(1, 72)
+                resolved_at = (created + timedelta(hours=resolve_hours)).strftime(
+                    "%Y-%m-%d %H:%M"
+                )
+                first_response = random.randint(5, 120)
+                csat = random.choices([1, 2, 3, 4, 5], weights=[3, 5, 15, 40, 37])[0]
+            elif days_ago > 1:
+                status = random.choice(["in_progress", "resolved"])
+                resolved_at = None
+                first_response = random.randint(5, 60)
+                csat = None
+                if status == "resolved":
+                    resolved_at = (
+                        created + timedelta(hours=random.randint(2, 48))
+                    ).strftime("%Y-%m-%d %H:%M")
+                    csat = random.choices([3, 4, 5], weights=[15, 40, 45])[0]
+            else:
+                status = "open"
+                resolved_at = None
+                first_response = None
+                csat = None
+
+            cursor.execute(
+                "INSERT INTO support_tickets VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (ticket_id, acct_id, subject, priority, category, status,
+                 created.strftime("%Y-%m-%d %H:%M"), resolved_at,
+                 first_response, csat),
+            )
+            ticket_id += 1
+
+    # ── 6. Invoices ──────────────────────────────────────────────
+
+    invoice_id = 1
+    for acct in accounts_data:
+        if acct["plan"] == "Free" or acct["mrr"] == 0:
+            continue
+
+        start = datetime.strptime(acct["signup_date"], "%Y-%m-%d")
+        month = start.replace(day=1)
+
+        while month < now:
+            issue_date = month
+            due_date = month + timedelta(days=30)
+            inv_number = f"INV-{issue_date.strftime('%Y%m')}-{invoice_id:05d}"
+
+            # Determine status
+            days_since = (now - issue_date).days
+            if days_since > 45:
+                inv_status = random.choices(
+                    ["paid", "paid", "paid", "overdue"],
+                    weights=[80, 5, 5, 10],
+                )[0]
+                paid_date = (
+                    (issue_date + timedelta(days=random.randint(5, 30))).strftime("%Y-%m-%d")
+                    if inv_status == "paid"
+                    else None
+                )
+            elif days_since > 15:
+                inv_status = "sent"
+                paid_date = None
+            else:
+                inv_status = "draft"
+                paid_date = None
+
+            cursor.execute(
+                "INSERT INTO invoices VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (invoice_id, acct["id"], inv_number, round(acct["mrr"], 2),
+                 inv_status, issue_date.strftime("%Y-%m-%d"),
+                 due_date.strftime("%Y-%m-%d"), paid_date),
+            )
+            invoice_id += 1
+
+            # Next month
+            if month.month == 12:
+                month = month.replace(year=month.year + 1, month=1)
+            else:
+                month = month.replace(month=month.month + 1)
 
     conn.commit()
 
     # Print summary
-    for table in ["departments", "employees", "customers", "products", "orders", "order_items", "invoices"]:
+    print()
+    for table in [
+        "accounts", "subscriptions", "mrr_events",
+        "feature_usage", "support_tickets", "invoices",
+    ]:
         count = cursor.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-        print(f"  {table}: {count} rows")
+        print(f"  {table}: {count:,} rows")
+
+    # Print key metrics
+    total_mrr = cursor.execute(
+        "SELECT SUM(mrr) FROM accounts WHERE status = 'active'"
+    ).fetchone()[0]
+    active = cursor.execute(
+        "SELECT COUNT(*) FROM accounts WHERE status = 'active'"
+    ).fetchone()[0]
+    churned = cursor.execute(
+        "SELECT COUNT(*) FROM accounts WHERE status = 'churned'"
+    ).fetchone()[0]
+
+    print(f"\n  Total MRR: ${total_mrr:,.2f}")
+    print(f"  Active accounts: {active}")
+    print(f"  Churned accounts: {churned}")
+    print(f"  Churn rate: {churned / (active + churned) * 100:.1f}%")
 
     conn.close()
-    print(f"\nDatabase created at: {DB_PATH}")
+    print(f"\n  Database: {DB_PATH}")
 
 
 if __name__ == "__main__":
-    print("Seeding DataPilot demo database...")
+    print("Seeding DataPilot SaaS metrics database...")
     seed_database()
-    print("Done!")
+    print("\nDone!")

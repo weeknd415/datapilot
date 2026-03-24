@@ -109,32 +109,32 @@ datapilot/
 
 ## Request Lifecycle
 
-Here's what happens when a user sends "What are the top 5 customers by revenue?":
+Here's what happens when a user sends "What are the top 5 accounts by MRR?":
 
 ```
 1. Frontend POSTs to /api/query
-   → { "query": "What are the top 5 customers by revenue?", "session_id": "abc" }
+   -> { "query": "What are the top 5 accounts by MRR?", "session_id": "abc" }
 
 2. Rate limiter checks IP (guest mode)
 
 3. SupervisorAgent.process() is called
-   ├── Conversation memory enriches query with prior context
-   ├── LangGraph state machine starts
-   │
-   ├── [route] node: LLM reads ROUTING_PROMPT, returns JSON
-   │   → { "agents": ["sql_agent"], "needs_analytics": false }
-   │
-   ├── [sql_agent] node: SQLAgent.process()
-   │   ├── Reads database schema (cached)
-   │   ├── LLM generates SQL: SELECT c.name, SUM(o.total) ...
-   │   ├── execute_sql() runs query against SQLite
-   │   ├── LLM explains results in natural language
-   │   └── Returns SQLQueryResult with confidence 0.92
-   │
-   ├── [synthesize] node: LLM combines all agent outputs
-   │   └── Returns final answer with bullet points
-   │
-   └── QueryResponse assembled with answer, sources, trace, timing
+   |-- Conversation memory enriches query with prior context
+   |-- LangGraph state machine starts
+   |
+   |-- [route] node: LLM reads ROUTING_PROMPT, returns JSON
+   |   -> { "agents": ["sql_agent"], "needs_analytics": false }
+   |
+   |-- [sql_agent] node: SQLAgent.process()
+   |   |-- Reads database schema (cached)
+   |   |-- LLM generates SQL: SELECT company_name, mrr FROM accounts ...
+   |   |-- execute_sql() runs query against SQLite
+   |   |-- LLM explains results in natural language
+   |   |-- Returns SQLQueryResult with confidence 0.95
+   |
+   |-- [synthesize] node: LLM combines all agent outputs
+   |   |-- Returns final answer with bullet points
+   |
+   |-- QueryResponse assembled with answer, sources, trace, timing
 
 4. Response returned as JSON (or streamed via SSE)
 ```
@@ -273,9 +273,9 @@ Conditional edges after each agent decide whether to proceed to the next agent o
 
 ### Multi-Agent Chaining
 
-Agents execute sequentially when dependent. For example, "Show revenue trends with a chart":
-1. `sql_agent` fetches revenue data from the database
-2. `analytics_agent` receives SQL results and generates a chart
+Agents execute sequentially when dependent. For example, "Show MRR growth trends with a chart":
+1. `sql_agent` fetches MRR event data from the database
+2. `analytics_agent` receives SQL results and generates a trend chart
 3. `synthesize` combines everything into the final answer
 
 ---
@@ -292,19 +292,18 @@ Key functions:
 - `get_sample_data(table, limit)` — Fetches N rows from a table to help the LLM understand data patterns
 - `execute_sql(query)` — Executes a SQL query with safety validation. Returns `(rows, columns)` where rows are dicts.
 
-### Schema (7 tables)
+### Schema (6 tables — B2B SaaS Metrics)
 
 Seeded by `scripts/seed_database.py`:
 
 | Table | Records | Purpose |
 |-------|---------|---------|
-| departments | 6 | Organization structure |
-| employees | ~46 | Staff with department FK |
-| customers | 30 | Business customers with tier (Free/Starter/Professional/Enterprise) |
-| products | 12 | Products with category and pricing |
-| orders | ~2079 | 2-year order history |
-| order_items | ~5125 | Line items per order |
-| invoices | ~1578 | Invoice records with payment status |
+| accounts | 40 | SaaS customers with plan, MRR, ARR, status, churn date |
+| subscriptions | 47 | Plan history, seat counts, billing cycles |
+| mrr_events | 95 | New, expansion, contraction, churn, reactivation events |
+| feature_usage | ~4,796 | Daily active users and event counts per feature (90 days) |
+| support_tickets | ~1,754 | Priority, category, CSAT scores, resolution times |
+| invoices | ~399 | Monthly billing with payment status |
 
 ### SQL Safety
 
